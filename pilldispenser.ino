@@ -1,7 +1,7 @@
-#include <ThreeWire.h>    // library : rtc by makuna
+#include <ThreeWire.h>    
 #include <RtcDS1302.h>
 #include <LiquidCrystal.h>
-#include <AFMotor.h>        //library : adafruit motor shield 1.0.1
+#include <AFMotor.h>        
 
 ThreeWire myWire(26,24,28); // IO, SCLK, CE
 RtcDS1302<ThreeWire> Rtc(myWire);
@@ -11,7 +11,7 @@ LiquidCrystal lcd(30, 32, 34, 36, 38, 40);
 AF_Stepper stepper1(20,1);
 AF_Stepper stepper2(20,2); 
 
-const int taster1=52,taster2=50,taster3=46,dioda=44,buzzer=22;  
+const int taster1=52,taster2=50,taster3=48,dioda=44,buzzer=22;  
 
 struct inputs {
   int brt;
@@ -27,8 +27,9 @@ void setup ()
  lcd.begin(16,2);
  stepper1.setSpeed(200);
  stepper2.setSpeed(200);
+ Serial.begin(9600);
  Rtc.Begin();
- 
+ RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
  int sati=0,minute=0,b=0;
  pinMode (taster1, INPUT);
  pinMode (taster2, INPUT);
@@ -51,7 +52,7 @@ void setup ()
      if(b==1)
        sati++;
      if(b==2)
-       minute=minute+2;
+       minute=minute+5;
      if(sati>23)
        sati=0;
      if(minute>58)
@@ -96,17 +97,23 @@ void loop ()
   String sati,minute;
   
   RtcDateTime now = Rtc.GetDateTime();
-
   sati=now.Hour();
   minute=now.Minute();
-
+  if(prva_tableta==0 || druga_tableta==0){
+    digitalWrite(dioda,HIGH);
+    lcd.clear();
+    lcd.print("NAPUNITE");
+    lcd.setCursor(0,1);
+    lcd.print("SPREMNIK");
+    delay(2000);
+  }
   for(int j=0;j<i;j++){
 
     if((sati==vremena[j].h)&&(minute==vremena[j].min)){
 
       if(vremena[j].brt==1 && vremena[j].done==false && prva_tableta>0){
 
-        stepper1.step(30,FORWARD,MICROSTEP);
+        stepper1.step(32,FORWARD,MICROSTEP);
         stepper1.release();
         vremena[j].done=true;
         prva_tableta--;
@@ -118,9 +125,11 @@ void loop ()
           digitalWrite(buzzer,HIGH);
 
           if(digitalRead(taster3)==HIGH){
-            digitalWrite(dioda,LOW);
             digitalWrite(buzzer,LOW);
-            break;
+            if(digitalRead(taster3)==LOW){
+              digitalWrite(dioda,LOW);
+              break;
+            }
           }
         
         }
@@ -128,8 +137,7 @@ void loop ()
       }
       
       if(vremena[j].brt==2 && vremena[j].done==false && druga_tableta>0){
-
-        stepper2.step(30,FORWARD,MICROSTEP);
+        stepper2.step(35,FORWARD,MICROSTEP);
         stepper2.release();
         vremena[j].done=true;
         druga_tableta--;
@@ -141,9 +149,11 @@ void loop ()
           digitalWrite(buzzer,HIGH);
 
           if(digitalRead(taster3)==HIGH){
-            digitalWrite(dioda,LOW);
             digitalWrite(buzzer,LOW);
-            break;
+            if(digitalRead(taster3)==LOW){
+              digitalWrite(dioda,LOW);
+              break;
+            }
           }
        }
       }
@@ -153,17 +163,21 @@ void loop ()
   }
  if(digitalRead(taster1)==HIGH){
    for(int j=0;j<6-prva_tableta;j++){
-     stepper1.step(30,BACKWARD,MICROSTEP);
+     stepper1.step(32,BACKWARD,MICROSTEP);
      stepper1.release();
    }
   prva_tableta=6;
+  digitalWrite(buzzer,LOW);
+  digitalWrite(dioda,LOW);
  }
  if(digitalRead(taster2)==HIGH){
   for(int j=0;j<6-druga_tableta;j++){
-  stepper2.step(30,BACKWARD,MICROSTEP);
+  stepper2.step(35,BACKWARD,MICROSTEP);
   stepper2.release();
   }
   druga_tableta=6;
+  digitalWrite(buzzer,LOW);
+  digitalWrite(dioda,LOW);
  }
  lcd.clear();
  lcd.print(sati);
@@ -177,7 +191,6 @@ void loop ()
     lcd.print("*");
  delay(2000); 
 }
-
 
 
 
@@ -202,5 +215,5 @@ void loop ()
    //wiper to LCD VO pin (pin 3)
 //desni taster -->50
 //lijevi taster -->52
-//taster za ladicu -->48
-//dioda -->44
+//taster za ladicu -->44
+//dioda -->48
